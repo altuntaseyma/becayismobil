@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "452331817845",
+    "firebase_url": "https://becayisplatformu-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "becayisplatformu",
+    "storage_bucket": "becayisplatformu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452331817845:android:385cd2d5596236c07f213c",
+        "android_client_info": {
+          "package_name": "com.becayismobil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCN5ZYCP1UpUEQoQ9cN5lBO8CSHsDgD-SU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
