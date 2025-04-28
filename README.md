@@ -1,0 +1,4 @@
+https://docs.google.com/document/d/1TKboEuu2061em83bHJQcQGBcm7-GRodK/edit
+
+YMH314 - FONKSİYONEL PROGRAMLAMA
+KAMU BECAYİS SİSTEMİ MOBİL UYGULAMASI
