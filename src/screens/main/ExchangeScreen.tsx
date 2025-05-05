@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,45 +6,50 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthStackNavigationProp } from '../../navigation/types';
 import { ExchangeRequest } from '../../types';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 
 type ExchangeScreenProps = {
   navigation: AuthStackNavigationProp;
 };
 
-const DUMMY_REQUESTS: ExchangeRequest[] = [
-  {
-    id: '1',
-    title: 'İstanbul -> Ankara Becayiş',
-    description: 'İstanbul Kadıköy\'den Ankara merkeze becayiş arıyorum.',
-    fromLocation: 'İstanbul, Kadıköy',
-    toLocation: 'Ankara, Merkez',
-    department: 'Matematik',
-    institution: 'Anadolu Lisesi',
-    date: '24 Mart 2024',
-    status: 'Aktif',
-  },
-  {
-    id: '2',
-    title: 'İzmir -> Antalya Becayiş',
-    description: 'İzmir Bornova\'dan Antalya\'ya becayiş arıyorum.',
-    fromLocation: 'İzmir, Bornova',
-    toLocation: 'Antalya',
-    department: 'Fizik',
-    institution: 'Fen Lisesi',
-    date: '23 Mart 2024',
-    status: 'Aktif',
-  },
-];
-
 const ExchangeScreen = ({ navigation }: ExchangeScreenProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('Tümü');
+  const [requests, setRequests] = useState<ExchangeRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'exchangeRequests'), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ExchangeRequest[];
+        setRequests(data);
+      } catch (error) {
+        setRequests([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRequests();
+  }, []);
 
   const filters = ['Tümü', 'Aktif', 'Beklemede', 'Tamamlandı'];
+
+  const filteredRequests = requests.filter(item => {
+    if (selectedFilter === 'Tümü') return true;
+    return item.status === selectedFilter;
+  }).filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const renderRequest = ({ item }: { item: ExchangeRequest }) => (
     <TouchableOpacity
@@ -80,6 +85,14 @@ const ExchangeScreen = ({ navigation }: ExchangeScreenProps) => {
       </View>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -119,7 +132,7 @@ const ExchangeScreen = ({ navigation }: ExchangeScreenProps) => {
         />
       </View>
       <FlatList
-        data={DUMMY_REQUESTS}
+        data={filteredRequests}
         renderItem={renderRequest}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}

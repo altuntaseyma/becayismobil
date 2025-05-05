@@ -1,70 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
+  ScrollView,
+  Alert,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { ProfileScreenProps } from '../navigation/types';
+import { Ionicons } from '@expo/vector-icons';
 
 interface UserProfile {
-  name: string;
+  displayName: string;
   email: string;
   kurumKategori: string;
   kurum: string;
   il: string;
   ilce: string;
-  createdAt: Date;
-  updatedAt: Date;
+  isVerified: boolean;
+  verificationStatus: 'pending' | 'approved' | 'rejected';
 }
 
-const ProfileScreen = () => {
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const { user, logout } = useAuth();
+const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
+  const { getUserData, logout } = useAuth();
+  const [userData, setUserData] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user?.uid) return;
+    loadUserData();
+  }, []);
 
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          setProfile({
-            ...docSnap.data() as UserProfile,
-            createdAt: docSnap.data().createdAt?.toDate(),
-            updatedAt: docSnap.data().updatedAt?.toDate(),
-          });
-        }
-      } catch (error) {
-        console.error('Profil bilgileri alınamadı:', error);
-      } finally {
-        setLoading(false);
+  const loadUserData = async () => {
+    try {
+      const data = await getUserData();
+      if (data) {
+        setUserData(data as UserProfile);
       }
-    };
-
-    fetchProfile();
-  }, [user]);
+    } catch (error) {
+      console.error('Kullanıcı bilgileri yüklenirken hata:', error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
       await logout();
+      navigation.replace('Login');
     } catch (error) {
-      console.error('Çıkış yapılırken hata oluştu:', error);
+      console.error('Çıkış yapılırken hata:', error);
     }
   };
 
-  if (loading) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return '#34C759';
+      case 'rejected':
+        return '#FF3B30';
+      default:
+        return '#FF9500';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'Onaylandı';
+      case 'rejected':
+        return 'Reddedildi';
+      default:
+        return 'Onay Bekliyor';
+    }
+  };
+
+  if (!userData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <Text>Yükleniyor...</Text>
       </View>
     );
   }
@@ -72,60 +83,47 @@ const ProfileScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.avatarContainer}>
+        <View style={styles.profileImageContainer}>
           <Ionicons name="person" size={60} color="#007AFF" />
         </View>
-        <Text style={styles.name}>{profile?.name}</Text>
-        <Text style={styles.email}>{profile?.email}</Text>
+        <Text style={styles.name}>{userData.displayName}</Text>
+        <Text style={styles.email}>{userData.email}</Text>
+        
+        <View style={[styles.verificationStatus, { backgroundColor: getStatusColor(userData.verificationStatus) }]}>
+          <Text style={styles.verificationText}>
+            {getStatusText(userData.verificationStatus)}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.infoSection}>
         <View style={styles.infoItem}>
-          <Ionicons name="business" size={24} color="#666" style={styles.icon} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Kurum Kategorisi</Text>
-            <Text style={styles.infoValue}>{profile?.kurumKategori}</Text>
-          </View>
+          <Text style={styles.infoLabel}>Kurum Kategorisi</Text>
+          <Text style={styles.infoValue}>{userData.kurumKategori}</Text>
         </View>
 
         <View style={styles.infoItem}>
-          <Ionicons name="business" size={24} color="#666" style={styles.icon} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Kurum</Text>
-            <Text style={styles.infoValue}>{profile?.kurum}</Text>
-          </View>
+          <Text style={styles.infoLabel}>Kurum</Text>
+          <Text style={styles.infoValue}>{userData.kurum}</Text>
         </View>
 
         <View style={styles.infoItem}>
-          <Ionicons name="location" size={24} color="#666" style={styles.icon} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>İl</Text>
-            <Text style={styles.infoValue}>{profile?.il}</Text>
-          </View>
+          <Text style={styles.infoLabel}>İl</Text>
+          <Text style={styles.infoValue}>{userData.il}</Text>
         </View>
 
         <View style={styles.infoItem}>
-          <Ionicons name="location" size={24} color="#666" style={styles.icon} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>İlçe</Text>
-            <Text style={styles.infoValue}>{profile?.ilce}</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoItem}>
-          <Ionicons name="calendar" size={24} color="#666" style={styles.icon} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Kayıt Tarihi</Text>
-            <Text style={styles.infoValue}>
-              {profile?.createdAt?.toLocaleDateString('tr-TR')}
-            </Text>
-          </View>
+          <Text style={styles.infoLabel}>İlçe</Text>
+          <Text style={styles.infoValue}>{userData.ilce}</Text>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Ionicons name="log-out" size={24} color="#fff" style={styles.logoutIcon} />
-        <Text style={styles.logoutText}>Çıkış Yap</Text>
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={24} color="#fff" style={styles.buttonIcon} />
+        <Text style={styles.buttonText}>Çıkış Yap</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -140,22 +138,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   header: {
     alignItems: 'center',
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginTop: 40,
   },
-  avatarContainer: {
+  profileImageContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   name: {
     fontSize: 24,
@@ -166,44 +162,48 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 15,
+  },
+  verificationStatus: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  verificationText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   infoSection: {
     padding: 20,
   },
   infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 20,
-  },
-  icon: {
-    marginRight: 15,
-  },
-  infoContent: {
-    flex: 1,
   },
   infoLabel: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 2,
+    marginBottom: 5,
   },
   infoValue: {
     fontSize: 16,
     color: '#333',
+    fontWeight: '500',
   },
   logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#007AFF',
-    marginHorizontal: 20,
-    marginBottom: 30,
+    backgroundColor: '#FF3B30',
+    margin: 20,
     padding: 15,
     borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoutIcon: {
+  buttonIcon: {
     marginRight: 10,
   },
-  logoutText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

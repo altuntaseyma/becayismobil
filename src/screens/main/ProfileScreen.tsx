@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,26 +6,52 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthStackNavigationProp } from '../../navigation/types';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../config/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 type ProfileScreenProps = {
   navigation: AuthStackNavigationProp;
 };
 
-// Örnek kullanıcı verisi
-const DUMMY_USER = {
-  name: 'Ahmet Yılmaz',
-  email: 'ahmet.yilmaz@example.com',
-  phone: '0555 555 55 55',
-  institution: 'Milli Eğitim',
-  department: 'Öğretmen',
-  location: 'İstanbul',
-  avatar: null,
-};
-
 const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
+  const { user, getUserData, logout } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ aktif: 0, eslesme: 0, tamamlanan: 0 });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      if (!user) return;
+      // Kullanıcı profil verisi
+      const userData = await getUserData();
+      setProfile(userData);
+      // Aktif talep sayısı
+      const qAktif = query(collection(db, 'exchangeRequests'), where('userId', '==', user.uid), where('isActive', '==', true));
+      const aktifSnap = await getDocs(qAktif);
+      // Tamamlanan talep sayısı
+      const qTamam = query(collection(db, 'exchangeRequests'), where('userId', '==', user.uid), where('isActive', '==', false));
+      const tamamSnap = await getDocs(qTamam);
+      // Eşleşme sayısı (matches koleksiyonunda userId1 veya userId2 eşit olanlar)
+      const qEslesme1 = query(collection(db, 'matches'), where('userId1', '==', user.uid));
+      const qEslesme2 = query(collection(db, 'matches'), where('userId2', '==', user.uid));
+      const eslesmeSnap1 = await getDocs(qEslesme1);
+      const eslesmeSnap2 = await getDocs(qEslesme2);
+      setStats({
+        aktif: aktifSnap.size,
+        tamamlanan: tamamSnap.size,
+        eslesme: eslesmeSnap1.size + eslesmeSnap2.size,
+      });
+      setLoading(false);
+    };
+    fetchData();
+  }, [user]);
+
   const menuItems = [
     {
       id: 'profile',
@@ -65,14 +91,22 @@ const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
     },
   ];
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       {/* Profil Başlığı */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-          {DUMMY_USER.avatar ? (
+          {profile?.avatar ? (
             <Image
-              source={{ uri: DUMMY_USER.avatar }}
+              source={{ uri: profile.avatar }}
               style={styles.avatar}
             />
           ) : (
@@ -81,26 +115,26 @@ const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
             </View>
           )}
         </View>
-        <Text style={styles.name}>{DUMMY_USER.name}</Text>
-        <Text style={styles.title}>{DUMMY_USER.department}</Text>
+        <Text style={styles.name}>{profile?.displayName || profile?.name || '-'}</Text>
+        <Text style={styles.title}>{profile?.department || '-'}</Text>
         <Text style={styles.location}>
           <Ionicons name="location-outline" size={16} color="#666" />
-          {DUMMY_USER.location}
+          {profile?.il || profile?.location || '-'}
         </Text>
       </View>
 
       {/* İstatistikler */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statNumber}>{stats.aktif}</Text>
           <Text style={styles.statLabel}>Aktif Talep</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>5</Text>
+          <Text style={styles.statNumber}>{stats.eslesme}</Text>
           <Text style={styles.statLabel}>Eşleşme</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>3</Text>
+          <Text style={styles.statNumber}>{stats.tamamlanan}</Text>
           <Text style={styles.statLabel}>Tamamlanan</Text>
         </View>
       </View>
@@ -123,7 +157,7 @@ const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
       </View>
 
       {/* Çıkış Yap Butonu */}
-      <TouchableOpacity style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutText}>Çıkış Yap</Text>
       </TouchableOpacity>
     </ScrollView>

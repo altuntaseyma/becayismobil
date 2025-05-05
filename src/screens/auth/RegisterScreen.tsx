@@ -2,87 +2,118 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
+import { Ionicons } from '@expo/vector-icons';
 import { RegisterScreenProps } from '../../navigation/types';
-import {
-  kurumKategorileri,
-  kurumlar,
-  iller,
-  ilceler
-} from '../../constants/data';
+import { kurumKategorileri, kurumlar, iller, ilceler } from '../../constants/data';
+import { List, Divider } from 'react-native-paper';
 
 const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
+    displayName: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    passwordConfirm: '',
     kurumKategori: '',
     kurum: '',
     il: '',
-    ilce: ''
+    ilce: '',
   });
-
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [kurumListesi, setKurumListesi] = useState<string[]>([]);
-  const [ilceListesi, setIlceListesi] = useState<string[]>([]);
-  const { signup } = useAuth();
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [filteredKurumlar, setFilteredKurumlar] = useState<string[]>([]);
+  const [filteredIlceler, setFilteredIlceler] = useState<string[]>([]);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     if (formData.kurumKategori) {
-      setKurumListesi(kurumlar[formData.kurumKategori] || []);
+      setFilteredKurumlar(kurumlar[formData.kurumKategori] || []);
       setFormData(prev => ({ ...prev, kurum: '' }));
     }
   }, [formData.kurumKategori]);
 
   useEffect(() => {
     if (formData.il) {
-      setIlceListesi(ilceler[formData.il] || []);
+      setFilteredIlceler(ilceler[formData.il] || []);
       setFormData(prev => ({ ...prev, ilce: '' }));
     }
   }, [formData.il]);
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.displayName) {
+      newErrors.displayName = 'Ad Soyad zorunludur';
+    }
+
+    if (!formData.email) {
+      newErrors.email = 'E-posta zorunludur';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Geçerli bir e-posta adresi giriniz';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Şifre zorunludur';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Şifre en az 6 karakter olmalıdır';
+    }
+
+    if (formData.password !== formData.passwordConfirm) {
+      newErrors.passwordConfirm = 'Şifreler eşleşmiyor';
+    }
+
+    if (!formData.kurumKategori) {
+      newErrors.kurumKategori = 'Kurum kategorisi seçiniz';
+    }
+
+    if (!formData.kurum) {
+      newErrors.kurum = 'Kurum seçiniz';
+    }
+
+    if (!formData.il) {
+      newErrors.il = 'İl seçiniz';
+    }
+
+    if (!formData.ilce) {
+      newErrors.ilce = 'İlçe seçiniz';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleRegister = async () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword ||
-        !formData.kurumKategori || !formData.kurum || !formData.il || !formData.ilce) {
-      setError('Lütfen tüm alanları doldurun');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Şifreler eşleşmiyor');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır');
+    if (!validateForm()) {
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
-      await signup(formData.email, formData.password, {
-        name: formData.name,
+      await register(formData.email, formData.password, {
+        displayName: formData.displayName,
         kurumKategori: formData.kurumKategori,
         kurum: formData.kurum,
         il: formData.il,
-        ilce: formData.ilce
+        ilce: formData.ilce,
+        isVerified: false,
+        verificationStatus: 'pending'
       });
-      navigation.navigate('Login');
+      Alert.alert('Başarılı', 'Hesabınız oluşturuldu. Lütfen e-posta adresinizi doğrulayın.');
+      navigation.replace('Login');
     } catch (error: any) {
-      setError(error.message);
+      Alert.alert('Hata', error.message || 'Kayıt sırasında bir hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -93,30 +124,28 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.logoContainer}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
           <View style={styles.iconContainer}>
             <Ionicons name="swap-horizontal" size={60} color="#007AFF" />
           </View>
           <Text style={styles.title}>Becayiş Portalı</Text>
         </View>
 
-        <View style={styles.formContainer}>
-          {error && <Text style={styles.errorText}>{error}</Text>}
-          
+        <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={24} color="#666" style={styles.inputIcon} />
+            <Ionicons name="person-outline" size={20} color="#666" style={styles.icon} />
             <TextInput
               style={styles.input}
               placeholder="Ad Soyad"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              autoCapitalize="words"
+              value={formData.displayName}
+              onChangeText={(text) => setFormData({ ...formData, displayName: text })}
             />
           </View>
+          {errors.displayName && <Text style={styles.errorText}>{errors.displayName}</Text>}
 
           <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={24} color="#666" style={styles.inputIcon} />
+            <Ionicons name="mail-outline" size={20} color="#666" style={styles.icon} />
             <TextInput
               style={styles.input}
               placeholder="E-posta"
@@ -126,9 +155,10 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
               autoCapitalize="none"
             />
           </View>
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={24} color="#666" style={styles.inputIcon} />
+            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.icon} />
             <TextInput
               style={styles.input}
               placeholder="Şifre"
@@ -142,96 +172,133 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
             >
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={24}
+                size={20}
                 color="#666"
               />
             </TouchableOpacity>
           </View>
+          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={24} color="#666" style={styles.inputIcon} />
+            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.icon} />
             <TextInput
               style={styles.input}
               placeholder="Şifre Tekrar"
-              value={formData.confirmPassword}
-              onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
+              value={formData.passwordConfirm}
+              onChangeText={(text) => setFormData({ ...formData, passwordConfirm: text })}
               secureTextEntry={!showPassword}
             />
           </View>
+          {errors.passwordConfirm && <Text style={styles.errorText}>{errors.passwordConfirm}</Text>}
 
-          <View style={styles.pickerContainer}>
-            <Ionicons name="business-outline" size={24} color="#666" style={styles.inputIcon} />
-            <Picker
-              selectedValue={formData.kurumKategori}
-              style={styles.picker}
-              onValueChange={(itemValue: string) => setFormData({ ...formData, kurumKategori: itemValue })}
-            >
-              <Picker.Item label="Kurum Kategorisi Seçin" value="" />
-              {kurumKategorileri.map((kategori) => (
-                <Picker.Item key={kategori} label={kategori} value={kategori} />
-              ))}
-            </Picker>
-          </View>
+          {/* Kurum Kategorisi Dropdown */}
+          <List.Accordion
+            title={formData.kurumKategori || 'Kurum Kategorisi Seçin'}
+            expanded={openDropdown === 'kurumKategori'}
+            onPress={() => setOpenDropdown(openDropdown === 'kurumKategori' ? null : 'kurumKategori')}
+            style={{ ...styles.inputContainer, borderColor: errors.kurumKategori ? 'red' : '#ddd', marginBottom: 5 }}
+            titleStyle={{ color: formData.kurumKategori ? '#333' : '#aaa', fontSize: 16 }}
+          >
+            {kurumKategorileri.map((item) => (
+              <List.Item
+                key={item}
+                title={item}
+                onPress={() => {
+                  setFormData({ ...formData, kurumKategori: item, kurum: '' });
+                  setOpenDropdown(null);
+                }}
+              />
+            ))}
+          </List.Accordion>
+          {errors.kurumKategori && <Text style={styles.errorText}>{errors.kurumKategori}</Text>}
+          <Divider />
 
-          <View style={styles.pickerContainer}>
-            <Ionicons name="business-outline" size={24} color="#666" style={styles.inputIcon} />
-            <Picker
-              selectedValue={formData.kurum}
-              style={styles.picker}
-              onValueChange={(itemValue: string) => setFormData({ ...formData, kurum: itemValue })}
-              enabled={kurumListesi.length > 0}
-            >
-              <Picker.Item label="Kurum Seçin" value="" />
-              {kurumListesi.map((kurum) => (
-                <Picker.Item key={kurum} label={kurum} value={kurum} />
-              ))}
-            </Picker>
-          </View>
+          {/* Kurum Dropdown */}
+          <List.Accordion
+            title={formData.kurum || 'Kurum Seçin'}
+            expanded={openDropdown === 'kurum'}
+            onPress={() => setOpenDropdown(openDropdown === 'kurum' ? null : 'kurum')}
+            style={{ ...styles.inputContainer, borderColor: errors.kurum ? 'red' : '#ddd', marginBottom: 5, opacity: formData.kurumKategori ? 1 : 0.5 }}
+            titleStyle={{ color: formData.kurum ? '#333' : '#aaa', fontSize: 16 }}
+            disabled={!formData.kurumKategori}
+          >
+            {filteredKurumlar.map((item) => (
+              <List.Item
+                key={item}
+                title={item}
+                onPress={() => {
+                  setFormData({ ...formData, kurum: item });
+                  setOpenDropdown(null);
+                }}
+              />
+            ))}
+          </List.Accordion>
+          {errors.kurum && <Text style={styles.errorText}>{errors.kurum}</Text>}
+          <Divider />
 
-          <View style={styles.pickerContainer}>
-            <Ionicons name="location-outline" size={24} color="#666" style={styles.inputIcon} />
-            <Picker
-              selectedValue={formData.il}
-              style={styles.picker}
-              onValueChange={(itemValue: string) => setFormData({ ...formData, il: itemValue })}
-            >
-              <Picker.Item label="İl Seçin" value="" />
-              {iller.map((il) => (
-                <Picker.Item key={il} label={il} value={il} />
-              ))}
-            </Picker>
-          </View>
+          {/* İl Dropdown */}
+          <List.Accordion
+            title={formData.il || 'İl Seçin'}
+            expanded={openDropdown === 'il'}
+            onPress={() => setOpenDropdown(openDropdown === 'il' ? null : 'il')}
+            style={{ ...styles.inputContainer, borderColor: errors.il ? 'red' : '#ddd', marginBottom: 5 }}
+            titleStyle={{ color: formData.il ? '#333' : '#aaa', fontSize: 16 }}
+          >
+            {iller.map((item) => (
+              <List.Item
+                key={item}
+                title={item}
+                onPress={() => {
+                  setFormData({ ...formData, il: item, ilce: '' });
+                  setOpenDropdown(null);
+                }}
+              />
+            ))}
+          </List.Accordion>
+          {errors.il && <Text style={styles.errorText}>{errors.il}</Text>}
+          <Divider />
 
-          <View style={styles.pickerContainer}>
-            <Ionicons name="location-outline" size={24} color="#666" style={styles.inputIcon} />
-            <Picker
-              selectedValue={formData.ilce}
-              style={styles.picker}
-              onValueChange={(itemValue: string) => setFormData({ ...formData, ilce: itemValue })}
-              enabled={ilceListesi.length > 0}
-            >
-              <Picker.Item label="İlçe Seçin" value="" />
-              {ilceListesi.map((ilce) => (
-                <Picker.Item key={ilce} label={ilce} value={ilce} />
-              ))}
-            </Picker>
-          </View>
+          {/* İlçe Dropdown */}
+          <List.Accordion
+            title={formData.ilce || 'İlçe Seçin'}
+            expanded={openDropdown === 'ilce'}
+            onPress={() => setOpenDropdown(openDropdown === 'ilce' ? null : 'ilce')}
+            style={{ ...styles.inputContainer, borderColor: errors.ilce ? 'red' : '#ddd', marginBottom: 5, opacity: formData.il ? 1 : 0.5 }}
+            titleStyle={{ color: formData.ilce ? '#333' : '#aaa', fontSize: 16 }}
+            disabled={!formData.il}
+          >
+            {filteredIlceler.map((item) => (
+              <List.Item
+                key={item}
+                title={item}
+                onPress={() => {
+                  setFormData({ ...formData, ilce: item });
+                  setOpenDropdown(null);
+                }}
+              />
+            ))}
+          </List.Accordion>
+          {errors.ilce && <Text style={styles.errorText}>{errors.ilce}</Text>}
+          <Divider />
 
           <TouchableOpacity
-            style={[styles.registerButton, loading && styles.disabledButton]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleRegister}
             disabled={loading}
           >
-            <Text style={styles.registerButtonText}>
-              {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
+            <Text style={styles.buttonText}>
+              {loading ? 'Kayıt Yapılıyor...' : 'Kayıt Ol'}
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.linksContainer}>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkText}>Zaten hesabınız var mı? Giriş yapın</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.loginLink}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={styles.loginText}>
+              Zaten hesabınız var mı? Giriş yapın
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -243,14 +310,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 40,
+  scrollView: {
+    flex: 1,
   },
-  logoContainer: {
+  header: {
     alignItems: 'center',
+    padding: 20,
     marginTop: 40,
-    marginBottom: 20,
   },
   iconContainer: {
     width: 100,
@@ -265,73 +331,66 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 20,
   },
-  formContainer: {
-    paddingHorizontal: 20,
+  form: {
+    padding: 20,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 5,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    marginBottom: 15,
     paddingHorizontal: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
+    height: 50,
   },
   pickerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingLeft: 10,
-    backgroundColor: '#fff',
+    marginBottom: 5,
   },
-  inputIcon: {
+  icon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    height: 50,
     fontSize: 16,
-  },
-  picker: {
-    flex: 1,
-    height: 50,
+    color: '#333',
+    height: '100%',
   },
   eyeIcon: {
     padding: 10,
   },
-  registerButton: {
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 5,
+  },
+  button: {
     backgroundColor: '#007AFF',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
   },
-  disabledButton: {
-    opacity: 0.7,
+  buttonDisabled: {
+    backgroundColor: '#ccc',
   },
-  registerButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  linksContainer: {
-    marginTop: 20,
+  loginLink: {
     alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 30,
   },
-  linkText: {
+  loginText: {
     color: '#007AFF',
-    fontSize: 14,
-    marginBottom: 10,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 16,
   },
 });
 

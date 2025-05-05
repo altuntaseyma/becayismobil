@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,81 +8,71 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthStackNavigationProp } from '../../navigation/types';
-import { ForumPost } from '../../types';
+import { useNavigation } from '@react-navigation/native';
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+import { useAuth } from '../../hooks/useAuth';
 
-type ForumScreenProps = {
-  navigation: AuthStackNavigationProp;
-};
+interface ForumPost {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: any;
+  comments: number;
+}
 
-// Örnek veri
-const DUMMY_POSTS: ForumPost[] = [
-  {
-    id: '1',
-    title: 'Becayiş Deneyimleriniz',
-    content: 'Becayiş sürecinde yaşadığınız deneyimleri paylaşır mısınız?',
-    author: 'Ahmet Y.',
-    date: '24 Mart 2024',
-    likes: 15,
-    comments: 8,
-    tags: ['deneyim', 'becayiş', 'süreç'],
-  },
-  {
-    id: '2',
-    title: 'İl Dışı Becayiş İmkanları',
-    content: 'İl dışı becayiş için hangi şartlar gerekiyor?',
-    author: 'Ayşe K.',
-    date: '23 Mart 2024',
-    likes: 10,
-    comments: 5,
-    tags: ['il dışı', 'şartlar'],
-  },
-  {
-    id: '3',
-    title: 'Yeni Düzenlemeler Hakkında',
-    content: 'Becayiş sistemindeki yeni düzenlemeler nasıl olacak?',
-    author: 'Mehmet S.',
-    date: '22 Mart 2024',
-    likes: 20,
-    comments: 12,
-    tags: ['düzenleme', 'yenilik'],
-  },
-];
-
-const ForumScreen = ({ navigation }: ForumScreenProps) => {
+const ForumScreen = () => {
+  const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigation = useNavigation();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const postsRef = collection(db, 'forumPosts');
+      const q = query(postsRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const fetchedPosts = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ForumPost[];
+      
+      setPosts(fetchedPosts);
+    } catch (error) {
+      console.error('Forum gönderileri yüklenirken hata:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderPost = ({ item }: { item: ForumPost }) => (
     <TouchableOpacity
       style={styles.postCard}
-      onPress={() => console.log('Post detayına git:', item.id)}
+      onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
     >
       <View style={styles.postHeader}>
         <Text style={styles.postTitle}>{item.title}</Text>
-        <Text style={styles.postAuthor}>{item.author}</Text>
+        <Text style={styles.postAuthor}>{item.authorName}</Text>
       </View>
       <Text style={styles.postContent} numberOfLines={2}>
         {item.content}
       </Text>
-      <View style={styles.tagsContainer}>
-        {item.tags.map((tag: string) => (
-          <View key={tag} style={styles.tag}>
-            <Text style={styles.tagText}>#{tag}</Text>
-          </View>
-        ))}
-      </View>
       <View style={styles.postFooter}>
-        <Text style={styles.postDate}>{item.date}</Text>
-        <View style={styles.interactions}>
-          <TouchableOpacity style={styles.interactionButton}>
-            <Ionicons name="heart-outline" size={20} color="#666" />
-            <Text style={styles.interactionText}>{item.likes}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.interactionButton}>
-            <Ionicons name="chatbubble-outline" size={20} color="#666" />
-            <Text style={styles.interactionText}>{item.comments}</Text>
-          </TouchableOpacity>
+        <View style={styles.postStats}>
+          <Ionicons name="chatbubble-outline" size={16} color="#666" />
+          <Text style={styles.statsText}>{item.comments}</Text>
         </View>
+        <Text style={styles.postDate}>
+          {item.createdAt?.toDate().toLocaleDateString('tr-TR')}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -91,10 +81,10 @@ const ForumScreen = ({ navigation }: ForumScreenProps) => {
     <View style={styles.container}>
       {/* Arama Çubuğu */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#666" />
+        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Forum içinde ara..."
+          placeholder="Forum gönderilerinde ara..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -102,19 +92,21 @@ const ForumScreen = ({ navigation }: ForumScreenProps) => {
 
       {/* Post Listesi */}
       <FlatList
-        data={DUMMY_POSTS}
+        data={posts.filter(post => 
+          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.content.toLowerCase().includes(searchQuery.toLowerCase())
+        )}
         renderItem={renderPost}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
       />
 
       {/* Yeni Post Butonu */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => console.log('Yeni gönderi oluştur')}
+        onPress={() => navigation.navigate('CreatePost')}
       >
-        <Ionicons name="add" size={24} color="#fff" />
+        <Ionicons name="add" size={24} color="#FFF" />
       </TouchableOpacity>
     </View>
   );
@@ -129,104 +121,83 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    margin: 16,
-    padding: 10,
+    margin: 10,
+    paddingHorizontal: 10,
     borderRadius: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 2,
+  },
+  searchIcon: {
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
+    paddingVertical: 12,
     fontSize: 16,
   },
   listContainer: {
-    padding: 16,
+    padding: 10,
   },
   postCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 16,
-    padding: 16,
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 2,
   },
   postHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   postTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     flex: 1,
   },
   postAuthor: {
     fontSize: 14,
     color: '#666',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   postContent: {
     fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  tag: {
-    backgroundColor: '#e8f0fe',
-    borderRadius: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 8,
-    marginBottom: 4,
-  },
-  tagText: {
-    color: '#1a73e8',
-    fontSize: 12,
+    color: '#444',
+    marginBottom: 10,
   },
   postFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+  },
+  postStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statsText: {
+    marginLeft: 5,
+    color: '#666',
   },
   postDate: {
     fontSize: 12,
     color: '#666',
   },
-  interactions: {
-    flexDirection: 'row',
-  },
-  interactionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 16,
-  },
-  interactionText: {
-    marginLeft: 4,
-    color: '#666',
-    fontSize: 14,
-  },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#007AFF',
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,

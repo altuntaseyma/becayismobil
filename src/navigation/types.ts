@@ -1,10 +1,21 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 export type RootStackParamList = {
-  Auth: undefined;
+  Login: undefined;
+  Register: undefined;
   MainTabs: undefined;
+  News: undefined;
+  Forum: undefined;
+  CreatePost: undefined;
+  PostDetail: { postId: string };
+  CreateRequest: undefined;
+  EditProfile: undefined;
+  Matches: undefined;
+  ChatScreen: { matchId: string };
+  ChatbotScreen: undefined;
+  NotificationScreen: undefined;
 };
 
 export type AuthStackParamList = {
@@ -15,22 +26,34 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  Home: undefined;
-  Profile: undefined;
-  Settings: undefined;
+  'Ana Sayfa': undefined;
+  'Değişim': undefined;
+  'Talepler': undefined;
+  'Profil': undefined;
 };
 
 export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export type MainTabNavigationProp = BottomTabNavigationProp<MainTabParamList>;
 
-export type LoginScreenProps = {
-  navigation: AuthStackNavigationProp;
-};
-
 export type RegisterScreenProps = {
-  navigation: AuthStackNavigationProp;
+  navigation: NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 };
 
+export type LoginScreenProps = {
+  navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+};
+
+export type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export type ProfileScreenProps = {
-  navigation: MainTabNavigationProp;
-}; 
+  navigation: NativeStackNavigationProp<MainTabParamList, 'Profile'>;
+};
+
+export type ForgotPasswordScreenProps = {
+  navigation: NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
+};
+
+export type EditProfileScreenProps = {
+  navigation: NativeStackNavigationProp<MainTabParamList, 'Profile'>;
+};
+
+export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>; 

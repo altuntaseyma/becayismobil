@@ -15,11 +15,8 @@ export const kurumTurleri = [
 ] as const;
 
 export const kurumKategorileri = [
-  'Milli Eğitim Bakanlığı',
-  'Sağlık Bakanlığı',
-  'İçişleri Bakanlığı',
-  'Adalet Bakanlığı',
-  'Diğer Bakanlıklar'
+  'Diğer Kamu Kurumları',
+  'Gelir İdaresi Başkanlığı'
 ] as const;
 
 export const iller = [
@@ -35,56 +32,12 @@ export const iller = [
   'Kilis', 'Osmaniye', 'Düzce'
 ] as const;
 
-export const kurumlar: Record<string, string[]> = {
-  'Milli Eğitim Bakanlığı': [
-    'İlkokul',
-    'Ortaokul',
-    'Lise',
-    'Mesleki ve Teknik Anadolu Lisesi',
-    'İl Milli Eğitim Müdürlüğü',
-    'İlçe Milli Eğitim Müdürlüğü'
-  ],
-  'Sağlık Bakanlığı': [
-    'Devlet Hastanesi',
-    'Eğitim ve Araştırma Hastanesi',
-    'Aile Sağlığı Merkezi',
-    'İl Sağlık Müdürlüğü',
-    'İlçe Sağlık Müdürlüğü'
-  ],
-  'İçişleri Bakanlığı': [
-    'Valilik',
-    'Kaymakamlık',
-    'İl Emniyet Müdürlüğü',
-    'İlçe Emniyet Müdürlüğü',
-    'Jandarma Komutanlığı'
-  ],
-  'Adalet Bakanlığı': [
-    'Adliye',
-    'Ceza İnfaz Kurumu',
-    'Denetimli Serbestlik Müdürlüğü'
-  ],
-  'Diğer Bakanlıklar': [
-    'Diğer Kamu Kurumları'
-  ]
+export const kurumlar: { [key: string]: string[] } = {
+  'Diğer Kamu Kurumları': ['Diğer Kurumlar'],
+  'Gelir İdaresi Başkanlığı': ['Gelir İdaresi Başkanlığı']
 };
 
 export const ilceler: { [key: string]: string[] } = {
-  'Adana': [
-    'Aladağ', 'Ceyhan', 'Çukurova', 'Feke', 'İmamoğlu', 'Karaisalı', 'Karataş', 'Kozan',
-    'Pozantı', 'Saimbeyli', 'Sarıçam', 'Seyhan', 'Tufanbeyli', 'Yumurtalık', 'Yüreğir'
-  ],
-  'İstanbul': [
-    'Adalar', 'Arnavutköy', 'Ataşehir', 'Avcılar', 'Bağcılar', 'Bahçelievler', 'Bakırköy',
-    'Başakşehir', 'Bayrampaşa', 'Beşiktaş', 'Beykoz', 'Beylikdüzü', 'Beyoğlu', 'Büyükçekmece',
-    'Çatalca', 'Çekmeköy', 'Esenler', 'Esenyurt', 'Eyüpsultan', 'Fatih', 'Gaziosmanpaşa',
-    'Güngören', 'Kadıköy', 'Kağıthane', 'Kartal', 'Küçükçekmece', 'Maltepe', 'Pendik',
-    'Sancaktepe', 'Sarıyer', 'Silivri', 'Sultanbeyli', 'Sultangazi', 'Şile', 'Şişli',
-    'Tuzla', 'Ümraniye', 'Üsküdar', 'Zeytinburnu'
-  ],
-  'Ankara': [
-    'Akyurt', 'Altındağ', 'Ayaş', 'Balâ', 'Beypazarı', 'Çamlıdere', 'Çankaya', 'Çubuk',
-    'Elmadağ', 'Etimesgut', 'Evren', 'Gölbaşı', 'Güdül', 'Haymana', 'Kalecik', 'Kahramankazan',
-    'Keçiören', 'Kızılcahamam', 'Mamak', 'Nallıhan', 'Polatlı', 'Pursaklar', 'Sincan',
-    'Şereflikoçhisar', 'Yenimahalle'
-  ]
+  'Elazığ': ['Merkez', 'Ağın', 'Alacakaya', 'Arıcak', 'Baskil', 'Karakoçan', 'Keban', 'Kovancılar', 'Maden', 'Palu', 'Sivrice'],
+  // Diğer iller için ilçeler eklenebilir
 }; 
