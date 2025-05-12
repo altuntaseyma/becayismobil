@@ -1,3 +1,4 @@
+// Chatbot ekranı: Mevzuat veritabanı ile entegre edilmiş hali
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -11,6 +12,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MevzuatService } from '../../services/MevzuatService';
+import { MevzuatMadde } from '../../types/database';
 
 interface Message {
   id: string;
@@ -48,11 +51,24 @@ const ChatbotScreen = () => {
     setNewMessage('');
     setLoading(true);
 
-    // Simüle edilmiş bot yanıtı
+    // Mevzuat araması
+    const mevzuatlar = await MevzuatService.getAll();
+    const lowerMessage = userMessage.text.toLowerCase();
+    const found = mevzuatlar.find(madde =>
+      lowerMessage.includes(madde.baslik.toLowerCase()) ||
+      lowerMessage.includes(madde.kategori.toLowerCase())
+    );
+    let botText = '';
+    if (found) {
+      botText = `İlgili mevzuat: ${found.baslik}\n${found.icerik}`;
+    } else {
+      botText = getBotResponse(userMessage.text);
+    }
+
     setTimeout(() => {
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: getBotResponse(userMessage.text),
+        text: botText,
         isBot: true,
         timestamp: new Date(),
       };
@@ -65,7 +81,7 @@ const ChatbotScreen = () => {
     const lowerMessage = userMessage.toLowerCase();
     
     if (lowerMessage.includes('becayiş') && lowerMessage.includes('şart')) {
-      return '657 sayılı Devlet Memurları Kanunu'na göre becayiş için temel şartlar:\n\n1. Her iki memurun da aynı sınıfta olması\n2. Kadro derecelerinin uyumlu olması\n3. Her iki kurumun da muvafakat vermesi gerekir.';
+      return "657 sayılı Devlet Memurları Kanunu'na göre becayiş için temel şartlar:\n\n1. Her iki memurun da aynı sınıfta olması\n2. Kadro derecelerinin uyumlu olması\n3. Her iki kurumun da muvafakat vermesi gerekir.";
     }
     
     if (lowerMessage.includes('belge') || lowerMessage.includes('evrak')) {

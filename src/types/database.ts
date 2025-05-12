@@ -1,5 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 
+// Ortak tipler ve veritabanı modelleri
+
 export interface User {
   id: string;
   fullName: string;
@@ -138,4 +140,12 @@ export interface Match {
   }>;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface MevzuatMadde {
+  id?: string;
+  baslik: string;
+  icerik: string;
+  kategori: string;
+  createdAt?: Date;
 } 

@@ -22,6 +22,7 @@ import ChatbotScreen from '../screens/main/ChatbotScreen';
 import NotificationScreen from '../screens/main/NotificationScreen';
 import CreateRequestScreen from '../screens/main/CreateRequestScreen';
 import EditProfileScreen from '../screens/main/EditProfileScreen';
+import AdminPanelScreen from '../screens/main/AdminPanelScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -95,6 +96,7 @@ const AppNavigator = () => {
             <Stack.Screen name="Notifications" component={NotificationScreen} options={{ title: 'Bildirimler' }} />
             <Stack.Screen name="CreateRequest" component={CreateRequestScreen} options={{ title: 'Talep Oluştur' }} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Profili Düzenle' }} />
+            <Stack.Screen name="AdminPanel" component={AdminPanelScreen} options={{ title: 'Admin Panel' }} />
           </>
         )}
       </Stack.Navigator>
